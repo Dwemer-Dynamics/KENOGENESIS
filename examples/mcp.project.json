@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "KENOGENESIS": {
+      "command": "python",
+      "args": ["-m", "kenogenesis", "--workspace", "C:/Private/CoEProjects", "mcp"],
+      "cwd": "C:/Tools/KENOGENESIS"
+    }
+  }
+}

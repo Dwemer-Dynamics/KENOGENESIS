@@ -1,0 +1,22 @@
+KENOGENESIS
+Copyright (C) 2026 Dwemer Dynamics contributors
+Licensed under GNU GPL version 3, as included in LICENSE.
+
+kenogenesis/paths.py and kenogenesis/errors.py are adapted from the local
+Kosmokrator project (Dwemer Dynamics), under GPLv3. The core, adapters and browser
+also use its shared-core, guarded-edit, local-reference and safe-export design.
+No private mods, demo nations, artwork or extracted game data were copied.
+
+Inspected Kosmokrator source baseline:
+  HEAD 25f1858c492053f54a106d54cf398606b6e079e7
+  Branch codex/hebdomad-style-v6, with local uncommitted changes
+  No configured remote; no claim of a verified public release baseline
+  Original paths.py SHA-256:
+    4498bddb781ea299bb94e0f7d096c2b950efa9898e894b0e027724a1252dcbcf
+  Original errors.py SHA-256:
+    f4cdcacf8fe3c3a32790c38f51834be0c77bfb120ac63d613605b5bded29c328
+
+CoE5 command signatures and documented limits were researched against:
+  Illwinter Game Design, Conquest of Elysium 5 Modding Manual, version 5.36
+  https://www.illwinter.com/coe5/coe5modding.pdf
+The manual is not bundled. Registry descriptions are independently written.

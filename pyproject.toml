@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kenogenesis"
+version = "0.1.0.dev0"
+description = "KENOGENESIS: local Conquest of Elysium 5 authoring, review and export"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.20,<2"]
+
+[project.scripts]
+kenogenesis = "kenogenesis.cli:main"
+kenogenesis-mcp = "kenogenesis.mcp_server:main"
+
+[tool.setuptools.package-data]
+kenogenesis = ["web/*.html", "web/*.css", "web/*.js", "example.c5m"]
+
+[tool.setuptools.packages.find]
+include = ["kenogenesis*"]

@@ -1,0 +1,48 @@
+# Independently authored mechanical prototype. Not a balanced faction or custom-art showcase.
+icon "banner.tga"
+description "KENOGENESIS Proving Ground: a small class, unit, weapon and ritual test."
+
+# This explicit custom terrain ID must be checked against any other enabled mods.
+selectterr 500
+name "Proving Ground Citadel"
+spr "citadel.tga"
+citadel
+gold 25
+iron 5
+
+newweapon "Keno Test Spear"
+init 6
+dmgtype 3
+dmg 4
+
+newritpow
+
+newmonster "Keno Sentinel"
+copystats "Goblin"
+descr "A test infantry unit with a custom spear."
+hp 8
+clearweapons
+meleeweapon 4 "Keno Test Spear"
+
+newritual "Call Test Sentinel"
+level 1
+cost 0 10
+addstring "Keno Sentinel"
+summoning
+free
+
+newmonster "Keno Ritualist"
+copystats "Goblin Shaman"
+descr "The test commander can call one Sentinel for gold."
+hp 12
+power 0
+
+newclass
+setclassname "KENOGENESIS Proving Ground"
+classdescr "A small independent mechanical test class."
+classabdescr "Recruit Sentinels and call them with a gold-cost ritual."
+hometerr 500
+setmaincom "Keno Ritualist"
+addstartunits "Keno Sentinel" 10
+addunitrec "Keno Sentinel" 100 5 20 0 0
+addcomrec "Keno Ritualist" 100 30 0 0

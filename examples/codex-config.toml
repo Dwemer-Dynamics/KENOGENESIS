@@ -1,0 +1,5 @@
+# Replace these example paths. Run from a source checkout or install the package.
+[mcp_servers.KENOGENESIS]
+command = "python"
+args = ["-m", "kenogenesis", "--workspace", "C:/Private/CoEProjects", "mcp"]
+cwd = "C:/Tools/KENOGENESIS"
