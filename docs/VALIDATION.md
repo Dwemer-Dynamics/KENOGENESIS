@@ -46,10 +46,15 @@ If isolation cannot be established, record the blocked runtime checks rather tha
 changing the user's existing configuration.
 
 Test an independently authored small class/unit/weapon/ritual example (a
-smoke test, not full-faction coverage; see [Full-faction acceptance](#full-faction-acceptance)):
+smoke test, not full-faction coverage; see [Full-faction acceptance](#full-faction-acceptance)).
+Install only an export that passed the
+[command support and deployment gate](AGENT_USAGE.md#command-support-and-deployment-gate)
+for the same source revision and export hashes.
 
 1. Verify exact exported file hashes at the isolated install destination.
-2. Discover/enable the mod and start a new game with its class.
+2. Explicitly enable the mod and start a new game with its class. Reaching the
+   main menu is not a load test. Record any engine error verbatim; after one,
+   follow the gate's audit step and re-test the corrected revision.
 3. Confirm a valid home citadel, main commander and starting troops.
 4. Recruit the intended unit and confirm costs/counts.
 5. Cast the intended ritual; verify costs, availability and results.
@@ -77,8 +82,10 @@ Static and browser cases, run against the reviewed revision:
 2. Every new unit, item, ritual, upgrade and form is reachable through a stated
    route; summons and forms have reachable parents and support has a consumer.
    Trace unlocks from the start without circular prerequisites.
-3. `validate_mod` reports no errors; warnings and documented-but-unvalidated
-   commands are explained. Definition order satisfies every reference.
+3. `validate_mod` reports no errors; every warning and unverified diagnostic is
+   read and explained, and each newly authored command is documented or blocked
+   under the [deployment gate](AGENT_USAGE.md#command-support-and-deployment-gate).
+   Definition order satisfies every reference.
 4. The browser Design view and Faction design checklist show the expected home,
    starting forces, recruitment rows and rituals. A checklist row marked Present
    shows presence only, not complete economy or progression.
@@ -108,7 +115,9 @@ or package results never make a faction playable or engine verified.
 
 ## Current feature limits
 
-- Registry and argument checking cover a curated subset.
+- Registry and argument checking cover a curated subset. A clean static result
+  does not show the engine accepts every command; the deployment gate is a
+  manual procedure, not an enforced check.
 - Parsing is line-oriented; multiline strings require source review.
 - The browser source editor refuses mixed newline conventions; targeted CLI
   patches can preserve them. Structured fields preserve byte offsets and encoding.

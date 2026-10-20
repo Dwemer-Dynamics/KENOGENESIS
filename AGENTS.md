@@ -9,7 +9,8 @@ are local ignored directories. Export only the explicitly reviewed file set.
 
 CoE5 uses `.c5m` commands without hash prefixes; `#` starts comments. Do not port
 Dominions IDs, syntax, nation rules or maps. Research commands against the pinned
-CoE5 manual and record actual game/catalog versions. Preserve unknown commands.
+CoE5 manual and record actual game/catalog versions. Preserve unknown commands on
+import; preservation is not approval to author or deploy them.
 
 Use inspect → preview → apply → validate → export with the same reviewed input
 revision. Never rewrite a whole mod through a serializer or resolve stale drafts
@@ -22,6 +23,15 @@ releases, remote repositories and modifications to existing game installations
 need separate authorization.
 
 ## Required review checks
+
+- Before any export meant for installation, apply the
+  [command support and deployment gate](docs/AGENT_USAGE.md#command-support-and-deployment-gate):
+  confirm each newly authored command's spelling, context and signature in the
+  official CoE5 manual, and read every error, warning and unverified diagnostic.
+  `static_ok` is not approval. Undocumented commands block deployment; never
+  delete a flagged command on registry absence alone. After an engine command
+  error, audit all authored source, not just the reported line. This gate is a
+  procedure, not automatic enforcement.
 
 - For authored attacks, resolve the referenced weapon's semantics against the
   pinned manual and versioned data. Natural-weapon damage and fixed-weapon damage
