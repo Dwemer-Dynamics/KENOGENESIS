@@ -21,6 +21,8 @@
 7. When export is in scope, export the reviewed revision. Inspect the manifest
    and package contents.
    Referenced files and `declared_assets` are the only additional payload.
+   An export meant for installation must first pass the
+   [command support and deployment gate](#command-support-and-deployment-gate).
 8. Report source revision, hashes, static checks, browser checks, engine evidence
    and untested behavior separately. No static result proves balance. Record
    observations with `record_evidence` only when the user asks; use the
@@ -76,6 +78,63 @@ Applies to the `create` and `build` authoring modes, not to an artwork-only pass
 Follow the user's scope for export and testing. Export when the task includes it;
 never install, launch the game, upload or publish without separate
 authorization, and do not add new approval steps for work the user already asked for.
+
+## Command support and deployment gate
+
+This is a written procedure for agents and reviewers. Nothing in KENOGENESIS
+enforces it automatically, and following it reduces but cannot rule out engine
+rejections.
+
+**Scope.** It applies to every command line you author or change, in any
+context (classes, monsters, weapons, items, rituals, terrain). Preserving
+unknown commands is import and round-trip behaviour; it is not approval to
+author them or to deploy them.
+
+**Authoring check.** Before writing a new command, confirm its exact CoE5
+spelling, the object context that accepts it, its arguments and the game version
+from the official CoE5 manual (the pinned copy and `lookup_command`). Do not
+transfer Dominions commands or syntax. Registry coverage is incomplete in both
+directions: a `curated` entry is argument-checked; a `documented` entry, or a
+name the registry lacks or flags for this context, needs a manual reading. The
+manual can permit a command the registry does not cover for that context (for
+example, monster commands it allows on magic items), so never delete a flagged
+line on registry absence alone, and never invent a substitute command.
+
+**Deployment gate.** Before an export intended for installation or deployment:
+
+1. Read every `validate_mod` error, warning and `unverified`/`unknown_command`
+   diagnostic individually. `static_ok` and a zero error count are not enough.
+2. Resolve each newly authored command in that list to one of:
+   - *documented*: the official manual gives its exact spelling, context and
+     signature. Note the source, page and context in the private project record,
+     then it may pass manual review.
+   - *blocked*: unknown, or known only from a release note or announcement
+     without a documented signature. It blocks normal deployment until
+     documented syntax or exact-version game evidence exists. Fix or remove it in
+     the source through the guarded edit flow, or keep the export as
+     review-only.
+3. With explicit authorization, a blocked command may be tried only as an
+   experiment in an isolated install, with the uncertainty recorded. The result
+   is evidence for that game version only.
+
+Do not weaken or bypass validation, globally reject unknown imported commands,
+or drop them to pass the gate. Separately authorized validator improvements are
+outside this procedure. An export for review or archive may preserve unknown
+commands but must not be described as ready to install.
+
+**Freeze and deploy.** Tie the review to one source revision and its export
+hashes, and keep the backup the guarded flow creates. Any edit invalidates the
+review: revalidate, re-export and re-inspect. When installation is authorized,
+verify that the installed files match the reviewed export hashes. When game
+testing is authorized, explicitly enable the mod and start a new game with the
+mod's class; reaching the main menu proves nothing. Record the game version,
+source revision, install hashes and any engine error verbatim. Nothing is engine
+verified without that matching evidence (see [VALIDATION.md](VALIDATION.md#coe5-acceptance)).
+
+**After an engine command error.** Do not patch only the reported line. Audit
+all authored source for the same command and for related commands of the same
+origin or context, correct them through guarded patches, then revalidate,
+re-export, redeploy when authorized and re-test the exact new revision.
 
 ## Default artwork scope
 
