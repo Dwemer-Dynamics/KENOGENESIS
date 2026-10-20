@@ -5,6 +5,8 @@ Licensed under GNU GPL version 3, as included in LICENSE.
 kenogenesis/paths.py and kenogenesis/errors.py are adapted from the local
 Kosmokrator project (Dwemer Dynamics), under GPLv3. The core, adapters and browser
 also use its shared-core, guarded-edit, local-reference and safe-export design.
+The browser shell and component stylesheet are ported from Kosmokrator, with
+KENOGENESIS palette tokens and CoE5 adapters. images.py adapts its TGA/PNG handling.
 No private mods, demo nations, artwork or extracted game data were copied.
 
 Inspected Kosmokrator source baseline:
@@ -15,8 +17,16 @@ Inspected Kosmokrator source baseline:
     4498bdbd781ea299bb94e0f7d096c2b950efa9898e894b0e027724a1252dcbcf
   Original errors.py SHA-256:
     f4cdcacf8fe3c3a32790c38f51834be0c77bfb120ac63d613605b5bded29c328
+  Reference web/index.html SHA-256:
+    8628cc076ea158efc00698f360a00636f88a6fc6ad3de9f3a3292afef8c4915a
+  Reference web/app.css SHA-256:
+    c3fa837d867c17b083a5d44258b422fe7151db39c7c8c30be24d7487d969b11a
+  Reference web/app.js SHA-256:
+    30d3a1ea114214d1f66369fdea4e6bb1d815a9885395282a7a152beb8ef729f0
 
 CoE5 command signatures and documented limits were researched against:
   Illwinter Game Design, Conquest of Elysium 5 Modding Manual, version 5.36
   https://www.illwinter.com/coe5/coe5modding.pdf
-The manual is not bundled. Registry descriptions are independently written.
+The manual is not bundled. The command reference index includes documented
+names, signatures, page locations and short manual descriptions; UI labels and
+curated validation are maintained separately. No engine simulation is implied.
