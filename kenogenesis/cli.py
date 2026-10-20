@@ -64,7 +64,8 @@ def main(argv=None):
     commands.add_argument("name", nargs="?")
     commands.add_argument("--context")
     commands.add_argument("--query", help="Match command names or manual summaries")
-    commands.add_argument("--status", choices=("curated", "documented"), help="curated entries have argument checks")
+    commands.add_argument("--status", choices=("curated", "documented", "announced"),
+                          help="curated entries have argument checks; announced names come from release notes only")
     commands.add_argument("--limit", type=int, default=200)
     serve = subs.add_parser("serve")
     serve.add_argument("--port", type=int, default=8766)

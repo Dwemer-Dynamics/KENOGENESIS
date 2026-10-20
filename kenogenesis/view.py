@@ -12,7 +12,8 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
 from .assets import inspect_asset
-from .commands import ASSET_ARGS, MANUAL, OPENERS, SCHEMAS, TABLES, command_status, manual_entry
+from .commands import (ANNOUNCED_COMMANDS, ASSET_ARGS, MANUAL, OPENERS, SCHEMAS, TABLES, announced_entry, command_status,
+                       game_profile, is_custom_terrain, manual_entry)
 from .parser import parse
 from .paths import contained, exact_case_lookup, is_link, mod_relpath_problems
 
@@ -225,7 +226,8 @@ def form_specs():
 
 
 def registry():
-    """Every command the editor can offer: curated (checked) entries plus the manual's documented ones."""
+    """Every command the reference lists: curated (checked) entries, the manual's documented ones and release-note
+    names marked announced (no signature; the editor does not offer them)."""
     from .manual_data import MANUAL_COMMANDS
     seen, out = set(), []
     for (ctx, cmd), spec in SCHEMAS.items():
@@ -243,6 +245,10 @@ def registry():
         out.append({"command": entry["command"], "context": entry["context"], "status": "documented", "page": entry["page"],
                     "manual_args": entry["args"], "label": label(entry["command"]), "signature": entry["signature"],
                     "summary": entry["summary"]})
+    for cmd, ctx in ANNOUNCED_COMMANDS.items():
+        entry = announced_entry(ctx, cmd)
+        out.append({"command": cmd, "context": ctx, "status": "announced", "page": None, "label": label(cmd),
+                    "signature": None, "summary": entry["note"], "minimum_version": entry["minimum_version"]})
     return out
 
 
@@ -309,9 +315,8 @@ class Model:
             "Not defined in this mod or found in the catalog."
         return {"status": "unresolved", "name": name, "kind": kind, "note": note}
 
-    @staticmethod
-    def is_custom_terrain(o):
-        return o["opener"] == "selectterr" and o["name"].isdigit() and 500 <= int(o["name"]) <= 999
+    def is_custom_terrain(self, o):
+        return o["opener"] == "selectterr" and is_custom_terrain(o["name"], self.s["meta"].get("target_version"))
 
     @staticmethod
     def _citadel_state(statements):
@@ -1058,7 +1063,7 @@ class Model:
                            "newline": "CRLF" if b"\r\n" in self.data else "LF", "bytes": len(self.data),
                            "lines": len(self.parsed["source"].splitlines())},
             "inputs": self.s["inputs"],
-            "manual": MANUAL, "mod_info": mod_info, "global_statements": g_statements,
+            "manual": MANUAL, "game_profile": game_profile(meta.get("target_version")), "mod_info": mod_info, "global_statements": g_statements,
             "objects": objs, "edges": edges, "counts": counts, "assets": assets, "assets_skipped": skipped,
             "validation": report, "catalog": self.core._catalog_info(self.s),
             "exports": self.exports[:5], "latest_export": latest,

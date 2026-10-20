@@ -109,6 +109,11 @@ or package results never make a faction playable or engine verified.
 ## Current feature limits
 
 - Registry and argument checking cover a curated subset.
+- CoE5 5.41 commands are known only by name from release notes (status `announced`);
+  their arguments are not checked. The 5.41 custom terrain range 500-1999 is inferred,
+  and the announced 5.41 engine limits are not enforced. More than 128 recruitment
+  entries is an error unless the target is 5.41 or later, where it is unverified (raised,
+  no number given).
 - Parsing is line-oriented; multiline strings require source review.
 - The browser source editor refuses mixed newline conventions; targeted CLI
   patches can preserve them. Structured fields preserve byte offsets and encoding.

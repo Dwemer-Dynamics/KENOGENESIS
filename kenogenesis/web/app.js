@@ -321,6 +321,7 @@
     if (m.catalog.source === "snapshot") box.append(badge("Catalog: private snapshot", "warn"));
     else if (["stale", "invalid"].includes(m.catalog.snapshot?.status)) box.append(badge(`Snapshot ${m.catalog.snapshot.status}`, "warn"));
     if (m.project.target_version && m.project.target_version !== m.manual.version) box.append(badge(`Manual ${m.manual.version}`, "info"));
+    if (m.game_profile?.release_notes?.length) box.append(badge(`${m.game_profile.release_notes[0].version} release notes`, "info"));
   }
   function diagnostics(m, items = m.validation.diagnostics) {
     if (!items.length) return stateBox("ok", "No diagnostics.");
@@ -520,7 +521,7 @@
         el("p",{class:"sheet-abilities"},v.flags.map((f,i)=>[i?", ":"",el("span",{class:"mod",title:`line ${f.line}`,text:f.label})])),
         v.abilities?.length?(compact?p(`Abilities: ${v.abilities.map(a=>[a.label,...a.args].join(" ")).join(", ")}`,"faint"):
           table(["Ability","Value","Source"],v.abilities.map(a=>[[el("span",{class:"mod",text:a.label}),a.summary?el("div",{class:"faint",text:`${a.summary}${a.page?` (manual p.${a.page})`:""}`}):
-            el("div",{class:"faint",text:a.status==="unknown"?"Not in the pinned manual; preserved verbatim.":""}),a.note?el("div",{class:"faint",text:a.note}):null],a.args.join(" · ")||"—",sourceLink(m,a.line)]))):null,
+            el("div",{class:"faint",text:a.status==="unknown"?"Not in the pinned manual; preserved verbatim.":a.status==="announced"?"Announced for CoE5 5.41, not in the pinned manual; preserved verbatim, not checked.":""}),a.note?el("div",{class:"faint",text:a.note}):null],a.args.join(" · ")||"—",sourceLink(m,a.line)]))):null,
         v.powers.length?p("Ritual power: "+v.powers.map(x=>x.name||x.value).join(", ")):null,
         v.spells.length?table(["Combat magic","Level"],v.spells.map(s=>[s.path_label||s.path,s.level])):null,
         unitForms(m,o,compact)),compact?null:spriteFigure(m,o)),
@@ -1144,7 +1145,7 @@
       const modes=openers.length>1?select("opener-mode",openers.map(x=>[x.command,`${x.new?"New":"Change existing"}: ${x.signature}`]),d.openerCommand):null;
       const argBox=el("div",{class:"edit-grid"});openerBox=argBox;
       const fillArgs=()=>{const os=openerSpec();argBox.replaceChildren();
-        os.args.forEach((a,i)=>{const name=os.command==="selectterr"?"Terrain number (500–999 for a new custom terrain)":os.command==="selectterrgroup"?"Terrain group number":
+        os.args.forEach((a,i)=>{const ct=m.game_profile?.custom_terrain,name=os.command==="selectterr"?`Terrain number (${ct?.first??500}–${ct?.last??999} for a new custom terrain)`:os.command==="selectterrgroup"?"Terrain group number":
             a.name.replace(/^./,ch=>ch.toUpperCase());
           const spec1={args:os.args.map(x=>x.code),refs:os.command==="selectmonster"&&i===0?["monster"]:[],choices:os.command==="selectclass"?[Object.entries(state.meta.tables.class||{}).map(([v,l])=>({value:v,label:l}))]:[]};
           const set=v=>{d.openerArgs[i]=v;if(i===0){d.openerName=v;dupCheck();}dirty(d);};
@@ -1241,7 +1242,7 @@
           [btn("Change",()=>commandForm(st),"btn-small btn-ghost"),btn("Remove",()=>{d.ops.push({op:"remove",line:st.line,was:st.code});dirty(d);fillLines();fillRows();},"btn-small btn-ghost")])];})));
       if(d.ops.some(x=>x.op==="add"))lineBox.append(table(["New command","Arguments",""],d.ops.filter(x=>x.op==="add").map(op=>[op.command,(op.arguments||op.raw||[]).join(" · "),btn("Undo",()=>{d.ops=d.ops.filter(x=>x!==op);dirty(d);fillLines();fillRows();},"btn-small btn-ghost")])));}
     const cmdBox=el("div");
-    function commandForm(st=null){cmdBox.replaceChildren();const entries=state.meta.registry.filter(e=>e.context===kind&&!/^(new|select)/.test(e.command)&&e.command!=="endevent");
+    function commandForm(st=null){cmdBox.replaceChildren();const entries=state.meta.registry.filter(e=>e.context===kind&&e.status!=="announced"&&!/^(new|select)/.test(e.command)&&e.command!=="endevent");
       const filter=input("command-filter","","search");filter.placeholder="Filter commands by name or description";
       const chosen=select("command",entries.map(e=>[e.command,`${e.label} (${e.command})`]),st?.command||entries[0]?.command),argsBox=el("div",{class:"edit-grid"}),help=p("","faint");let raw=[];
       chosen.size=6;
@@ -1590,7 +1591,7 @@
     {const r=await get(`${base(m)}/catalog/${index}`),row=r.row,c=r.catalog;
       const kindKey=String(row.kind).replace(/_selection$/,""),reg=cmd=>state.meta.registry.find(e=>e.command===cmd&&(e.context===kindKey||e.context==="global"));
       const statements=(row.statements||[]).map(text=>{const cmd=String(text).trim().split(/\s+/)[0]||"",e=reg(cmd);
-        return [el("span",{class:"mono",text:String(text)}),e?e.label:cmd,e?`${e.status==="curated"?"checked":"documented"} · p.${e.page}`:"not in the pinned manual"];});
+        return [el("span",{class:"mono",text:String(text)}),e?e.label:cmd,e?.status==="announced"?"announced for 5.41, not checked":e?`${e.status==="curated"?"checked":"documented"} · p.${e.page}`:"not in the pinned manual"];});
       const units=m.objects.filter(o=>o.kind==="monster");
       const compare=row.kind==="monster"&&units.length?(()=>{const s=select("compare-with",units.map(o=>[String(o.index),o.display]));s.setAttribute("aria-label","Unit to compare");
         return el("div",{class:"btn-row"},s,btn("Compare with this row",()=>{location.hash=path("p",m.project.slug,"units",s.value)+`?c=all&rev=${pinOf(m)}&refs=cat:${index}`;},"btn-small"));})():null;
@@ -2122,16 +2123,16 @@
   function toolsView(){
     const reg=state.meta?.registry||[],f={q:"",ctx:""},results=el("div");
     const q=input("cmd-search","","search");q.placeholder="Search commands, e.g. addunitrec or shape";q.setAttribute("aria-label","Search CoE5 commands");
-    const contexts=[...new Set(reg.map(e=>e.context))].sort(),ctx=select("cmd-context",[["","All contexts"],...contexts.map(c=>[c,kinds[c]?.[1]||c])]);ctx.setAttribute("aria-label","Command context");
+    const contexts=[...new Set(reg.map(e=>e.context).filter(Boolean))].sort(),ctx=select("cmd-context",[["","All contexts"],...contexts.map(c=>[c,kinds[c]?.[1]||c])]);ctx.setAttribute("aria-label","Command context");
     const fill=()=>{const hits=reg.filter(e=>(!f.ctx||e.context===f.ctx)&&`${e.command} ${e.label} ${e.summary||""}`.toLowerCase().includes(f.q.toLowerCase())).slice(0,80);
       results.replaceChildren(p(`${hits.length===80?"First 80":hits.length} commands · CoE5 Modding Manual ${state.meta.manual.version}`,"faint"),
-        table(["Command","Context","Signature","Status"],hits.map(e=>[stack(el("strong",{class:"mono",text:e.command}),e.summary?el("span",{class:"faint",text:e.summary}):null),kinds[e.context]?.[1]||e.context,
-          el("span",{class:"mono",text:`${e.signature}${e.page?` (p.${e.page})`:""}`}),e.status==="curated"?badge("checked","ok"):badge("documented","info")])));};
+        table(["Command","Context","Signature","Status"],hits.map(e=>[stack(el("strong",{class:"mono",text:e.command}),e.summary?el("div",{class:"faint",text:e.summary}):null),kinds[e.context]?.[1]||e.context||"Not stated",
+          e.signature?el("span",{class:"mono",text:`${e.signature}${e.page?` (p.${e.page})`:""}`}):el("span",{class:"faint",text:"Not documented"}),e.status==="curated"?badge("checked","ok"):e.status==="announced"?badge("announced 5.41","warn"):badge("documented","info")])));};
     q.addEventListener("input",()=>{f.q=q.value;fill();});ctx.addEventListener("change",()=>{f.ctx=ctx.value;fill();});fill();
     const projects=state.projects.filter(x=>x.ok);
     return stack(el("h1",{id:"page-title",tabindex:"-1",text:"Tools"}),
-      panel("Command reference",p("Checked commands have argument checks in KENOGENESIS; documented commands come from the pinned manual and are preserved verbatim without argument checks.","faint"),
-        el("div",{class:"btn-row"},q,ctx),results,link("Official CoE5 modding manual",state.meta.manual.url)),
+      panel("Command reference",p("Checked commands have argument checks in KENOGENESIS; documented commands come from the pinned manual and are preserved verbatim without argument checks. Announced commands are named only in the CoE5 5.41 release notes: no signature is known and they are not checked.","faint"),
+        el("div",{class:"btn-row"},q,ctx),results,el("div",{class:"btn-row"},link("Official CoE5 modding manual",state.meta.manual.url),...(state.meta.release_notes||[]).map(r=>link(`${r.title} release notes (${r.date})`,r.url)))),
       panel("Reference catalog import",p("Build a private lookup catalog from local reference .c5m files you are allowed to use. The browser sends file contents; the server never reads a path you type. Catalogs are never exported.","faint"),
         projects.length?el("ul",{class:"plain-list"},projects.map(x=>el("li",null,link(`${x.name||x.slug}: import reference catalog`,path("p",x.slug,"overview","catalog-import"))))):p("Create or import a project first.","faint"),
         link("CATALOG guide",path("docs","CATALOG.md"))),

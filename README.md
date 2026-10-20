@@ -104,6 +104,27 @@ mean that a reference is invalid. Explicit local donor or catalog values can be
 shown; game defaults and engine effects are not simulated.
 Arbitrary new combat-spell creation and map generation are outside this build.
 
+### CoE5 5.41
+
+Illwinter's CoE5 5.41 release notes (Steam news, 19 Oct 2026, gid 1846651706689977)
+announce new commands and raised engine limits. The official modding manual
+available then was still 5.36 and documents none of the new commands, so:
+
+- `brigand`, `pickupbrigands`, `adventurer`, `pickupadvent`, `partyleader` and the
+  event trigger `+minunitshere` are listed with status `announced`. Their
+  signatures, argument counts and (except the trigger) contexts are unknown; they
+  are preserved verbatim, reported as unverified and never argument-checked.
+- For targets 5.41 or later, `selectterr` 500-1999 opens a new custom terrain.
+  This range is inferred from the announced 2000 terrain slots and the reserved
+  0-499; it is not documented engine behaviour. Older, unset or unrecognized
+  target versions keep the manual's 500-999.
+- The other raised limits (monsters, sprites, recruitment lists and limiters,
+  ritual effects and strings, terrain groups) are shown for reference only and
+  are not enforced. KENOGENESIS's own file, upload and listing caps are tool
+  policies and did not change.
+- The bug fixes in the notes are game changes; KENOGENESIS neither implements nor
+  checks them.
+
 ## Agent workflow and export
 
 See [faction design](docs/FACTION-DESIGN.md), [agent usage](docs/AGENT_USAGE.md), [CLI/API reference](docs/CLI_REFERENCE.md),
