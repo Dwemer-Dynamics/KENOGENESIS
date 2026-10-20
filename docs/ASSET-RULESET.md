@@ -19,7 +19,9 @@ art direction is derived from it and from the resolved gameplay loadouts.
 - An original thematic mod banner set with the mod-wide `icon` command.
 - Other visuals only where the content uses a documented image command: an
   original `spr` icon for every new magic item (p.10), and an original terrain
-  `spr` for a new custom terrain (500-999) the faction introduces (p.29).
+  `spr` for a new custom terrain the faction introduces (p.29): 500-999, or
+  500-1999 when the target is CoE5 5.41 or later (inferred from the 5.41 release
+  notes, not the manual).
 
 CoE5 has no nation flag and no ritual or spell image command. Do not invent flag,
 spell or ritual icon requirements. The Steam `banner.png` (p.3) belongs to

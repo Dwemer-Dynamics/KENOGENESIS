@@ -14,7 +14,8 @@ from pathlib import Path
 
 from . import __version__
 from .assets import inspect_asset
-from .commands import ASSET_ARGS, MANUAL, OPENERS, SCHEMAS, lookup, manual_entry
+from .commands import (ASSET_ARGS, MANUAL, OPENERS, SCHEMAS, announced_entry, game_profile, is_custom_terrain, lookup,
+                       manual_entry)
 from .errors import KenoError
 from .parser import check_arguments, decode, parse
 from .paths import SLUG_RE, atomic_write_bytes, contained, exact_case_lookup, is_link, mod_relpath_problems, resolve_workspace
@@ -325,7 +326,8 @@ class Kenogenesis:
                 "source_sha256": sha(mod["data"]), "source": mod["parsed"]["source"],
                 "encoding": mod["parsed"]["encoding"], "objects": mod["parsed"]["objects"],
                 "validation": report, "assets": list(mod["assets"]),
-                "manual": MANUAL, "catalog": self._catalog_info(snapshot)}
+                "manual": MANUAL, "game_profile": game_profile(snapshot["meta"].get("target_version")),
+                "catalog": self._catalog_info(snapshot)}
 
     def _catalog_info(self, snapshot):
         catalog = snapshot["catalog"]
@@ -357,7 +359,8 @@ class Kenogenesis:
     def lookup_command(self, command: str | None = None, context: str | None = None, query: str | None = None,
                        status: str | None = None, limit: int = 200):
         """Curated (argument-checked) and documented-only commands of the pinned CoE5 manual, with signatures,
-        manual pages and argument names. status filters curated or documented; query matches name or summary."""
+        manual pages and argument names, plus names announced only in the 5.41 release notes (no signature).
+        status filters curated, documented or announced; query matches name or summary."""
         return lookup(command, context, query, status, limit)
 
     def search_game_data(self, project: str, query: str = "", kind: str | None = None, limit: int = 30):
@@ -376,9 +379,11 @@ class Kenogenesis:
         catalog = snapshot["catalog"]
         rows = catalog["rows"] if catalog else []
         all_new = {}
+        target_version = snapshot["meta"].get("target_version")
+        profile = game_profile(target_version)
         for mod in snapshot["mods"]:
             for obj in mod["parsed"]["objects"]:
-                custom_terrain = obj["opener"] == "selectterr" and obj["name"].isdigit() and 500 <= int(obj["name"]) <= 999
+                custom_terrain = obj["opener"] == "selectterr" and is_custom_terrain(obj["name"], target_version)
                 if (obj["opener"].startswith("new") or custom_terrain) and obj["name"]:
                     all_new.setdefault((obj["kind"], obj["name"]), []).append((mod["slug"], obj["line"]))
         for mod in snapshot["mods"]:
@@ -407,6 +412,11 @@ class Kenogenesis:
                     if documented:
                         issue("unverified", "uncurated_command", f"{command}: documented in the manual (p.{documented['page']}) but its "
                               "arguments and effects are not checked here; preserved verbatim.", st["line"])
+                    elif announced_entry(st["context"], command):
+                        later = profile["status"] == "5.41_or_later"
+                        issue("unverified", "announced_command", f"{command}: announced in the CoE5 5.41 release notes but not in the "
+                              f"pinned {MANUAL['version']} manual; arguments and context are not checked; preserved verbatim."
+                              + ("" if later else f" Needs CoE5 5.41 or later; the target is {target_version or 'not recorded'}."), st["line"])
                     else:
                         issue("unverified", "unknown_command", f"{command}: outside the curated registry; preserved verbatim.", st["line"])
                     continue
@@ -424,7 +434,12 @@ class Kenogenesis:
                         issue("unverified", "ritual_school", "Relative ritual school is not defined earlier in this mod; check dependency load order.", st["line"])
                 if command in OPENERS:
                     obj = parsed["objects"][st["object"]]
-                    custom_terrain = command == "selectterr" and args and args[0]["value"].isdigit() and 500 <= int(args[0]["value"]) <= 999
+                    custom_terrain = command == "selectterr" and args and is_custom_terrain(args[0]["value"], target_version)
+                    if command == "selectterr" and args and args[0]["value"].isdigit() and 1000 <= int(args[0]["value"]) <= 1999:
+                        issue("unverified", "terrain_range", f"Terrain {args[0]['value']}: " + (
+                            "custom number above 999, inferred from the 5.41 release notes (2000 terrain slots); engine allocation unverified."
+                            if custom_terrain else "numbers 1000-1999 are custom terrain only from CoE5 5.41; for target "
+                            f"{target_version or 'not recorded'} it is treated as an existing terrain."), st["line"])
                     if obj["kind"] not in SUPPORTED and not custom_terrain:
                         issue("unverified", "unsupported_context", f"{obj['kind']} semantics are not implemented.", st["line"])
                     if command.startswith("new") or custom_terrain:
@@ -473,7 +488,11 @@ class Kenogenesis:
                     if "setmaincom" not in commands:
                         issue("warning", "class_commander", "No main commander is declared.", obj["line"])
                     if sum(c in ("addunitrec", "addcomrec", "addmercrec") for c in commands) > 128:
-                        issue("error", "recruitment_limit", "More than 128 recruitment entries.", obj["line"])
+                        if profile["status"] == "5.41_or_later":
+                            issue("unverified", "recruitment_limit", "More than 128 recruitment entries; CoE5 5.41 raised the "
+                                  "recruitment list length by an unannounced amount.", obj["line"])
+                        else:
+                            issue("error", "recruitment_limit", "More than 128 recruitment entries.", obj["line"])
                 if obj["kind"] == "monster" and "spr2" in commands and ("spr1" not in commands or commands.index("spr2") < commands.index("spr1")):
                     issue("warning", "sprite_order", "spr2 must follow spr1; inherited graphics are not resolved.", obj["line"])
                 if obj["kind"] == "ritual" and commands.count("cost") > 4:
@@ -500,7 +519,8 @@ class Kenogenesis:
                                 "message": "Target game version has not been recorded."})
         elif snapshot["meta"]["target_version"] != MANUAL["version"]:
             diagnostics.append({"severity": "unverified", "code": "manual_version", "line": 0, "file": "project.json",
-                                "message": f"Target game version differs from the {MANUAL['version']} documentation baseline."})
+                                "message": f"Target game version differs from the {MANUAL['version']} documentation baseline. "
+                                           + profile["note"]})
         if catalog and catalog["game_version"] != snapshot["meta"].get("target_version"):
             diagnostics.append({"severity": "unverified", "code": "catalog_version", "line": 0, "file": "catalog",
                                 "message": "Catalog and target game versions do not match."})

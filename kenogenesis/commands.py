@@ -2,7 +2,10 @@
 
 Signatures and pages refer to Illwinter's CoE5 Modding Manual 5.36.
 Unknown commands are preserved and reported as unverified, never discarded.
+The 5.41 overlay below comes from Illwinter's release notes, not from the manual.
 """
+
+import re
 
 MANUAL = {"version": "5.36", "url": "https://www.illwinter.com/coe5/coe5modding.pdf"}
 OPENERS = {"newmonster": "monster", "selectmonster": "monster", "newweapon": "weapon",
@@ -123,16 +126,19 @@ def _lookup_entry(ctx, cmd):
             "source": "Manual index generated from the CoE5 Modding Manual (manual_data.py)"}
 
 
+COVERAGE = "curated subset plus the full manual index; 5.41 release-note names are listed as announced"
+
+
 def lookup(command=None, context=None, query=None, status=None, limit=200):
-    """Curated and documented-only commands of the pinned manual. A named command looked up in a block context also
-    matches its global form (block openers and mod-wide commands may appear anywhere). Unknown names are reported,
-    never invented."""
+    """Curated and documented-only commands of the pinned manual, plus names announced only in release notes. A named
+    command looked up in a block context also matches its global form (block openers and mod-wide commands may appear
+    anywhere) and an announced name whose context the notes do not state. Unknown names are reported, never invented."""
     if context is not None and context not in CONTEXTS:
-        return {"manual": MANUAL, "coverage": "curated subset plus the full manual index", "entries": [], "total": 0,
+        return {"manual": MANUAL, "coverage": COVERAGE, "entries": [], "total": 0,
                 "status": "unknown_context", "contexts": CONTEXTS,
                 "limitations": ["Contexts are the manual's block kinds; see contexts."]}
-    if status not in (None, "curated", "documented"):
-        raise ValueError("status is curated, documented or omitted")
+    if status not in (None, "curated", "documented", "announced"):
+        raise ValueError("status is curated, documented, announced or omitted")
     limit = max(1, min(int(limit), LOOKUP_LIMIT))
     q = (query or "").strip().casefold()[:60]
     keys = sorted(set(MANUAL_INDEX) | set(SCHEMAS), key=lambda k: (k[0] != "global", k[0], k[1]))
@@ -150,10 +156,21 @@ def lookup(command=None, context=None, query=None, status=None, limit=200):
         if context and ctx != context:
             entry["matched_via"] = "global"
         picked.append(entry)
-    result = {"manual": MANUAL, "coverage": "curated subset plus the full manual index", "entries": picked[:limit],
+    for cmd, ctx in ANNOUNCED_COMMANDS.items():
+        if (command and cmd != command) or (context and ctx != context and not (command and ctx is None)):
+            continue
+        if status not in (None, "announced") or (q and q not in cmd.casefold()):
+            continue
+        entry = announced_entry(ctx, cmd)
+        if context and ctx != context:
+            entry["matched_via"] = "context_not_announced"
+        picked.append(entry)
+    result = {"manual": MANUAL, "release_notes": [RELEASE_541], "coverage": COVERAGE, "entries": picked[:limit],
               "total": len(picked), "truncated": len(picked) > limit,
-              "counts": {"curated": sum(e["status"] == "curated" for e in picked), "documented": sum(e["status"] == "documented" for e in picked)},
+              "counts": {s: sum(e["status"] == s for e in picked) for s in ("curated", "documented", "announced")},
               "limitations": ["Only curated entries have argument checks; documented entries are preserved verbatim.",
+                              "Announced entries come from release notes, not the manual: signature, arguments and "
+                              "(unless stated) context are unknown.",
                               "No arbitrary new combat-spell authoring or complete engine simulation."]}
     if command and not picked:
         result.update(status="unknown", note="Not in the curated schema or the pinned manual index. Preserve it verbatim and "
@@ -169,7 +186,84 @@ def manual_entry(context, command):
 def command_status(context, command):
     if SCHEMAS.get(("global", command)) or SCHEMAS.get((context, command)):
         return "curated"
-    return "documented" if manual_entry(context, command) else "unknown"
+    if manual_entry(context, command):
+        return "documented"
+    return "announced" if announced_entry(context, command) else "unknown"
 
 
 KNOWN_COMMANDS = {cmd for (_, cmd) in SCHEMAS} | {cmd for (_, cmd) in MANUAL_INDEX}
+
+
+# Release-note overlay. The pinned manual stays 5.36; no signature, argument count or context below comes from it.
+RELEASE_541 = {"version": "5.41", "title": "Conquest of Elysium 5.41", "author": "johan", "date": "2026-10-19",
+               "source": "Steam news, ISteamNews/GetNewsForApp appid 1606340, gid 1846651706689977",
+               "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706689977",
+               "api": "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=1606340&count=20&maxlength=0&format=json",
+               "manual_version": MANUAL["version"],
+               "note": "The official manual available on the release date was still 5.36 and documents none of the announced "
+                       "commands. Bug fixes listed in the notes (long description scrollbar, sprite unloading) are game "
+                       "changes; KENOGENESIS does not implement or check them."}
+# Context is given only where the notes state it ("new event trigger"); None means the notes do not say.
+ANNOUNCED_COMMANDS = {"brigand": None, "pickupbrigands": None, "adventurer": None, "pickupadvent": None,
+                      "partyleader": None, "+minunitshere": "event"}
+# Engine limits as announced. None means "increased" without a number. They are reference only: whether a count is
+# total or custom, and its scope, is not stated, so KENOGENESIS enforces none of them.
+LIMITS_541 = [{"limit": "recruitment list length", "before": None, "after": None, "note": "Increased; no number announced."},
+              {"limit": "recruitment limiters", "before": 8, "after": 12},
+              {"limit": "sprites", "before": None, "after": None, "note": "Increased; no number announced."},
+              {"limit": "monsters", "before": 5000, "after": 6000},
+              {"limit": "ritual effects", "before": 14, "after": 20},
+              {"limit": "ritual strings", "before": 48, "after": 58,
+               "note": "Scope not stated in the release notes; not a reinterpretation of the manual's "
+                       "15 addstring alternatives per ritual."},
+              {"limit": "terrain groups", "before": 200, "after": 500},
+              {"limit": "terrain slots", "before": 1000, "after": 2000,
+               "note": "Total slots. KENOGENESIS infers custom numbers 500-1999 from this and the reserved 0-499; "
+                       "the engine's allocation above 999 is not documented."}]
+
+
+def parse_version(text):
+    """(major, minor) for a CoE5 version written like 5.41; None when unset or in any other form."""
+    match = re.fullmatch(r"(\d+)\.(\d{2})", text.strip()) if isinstance(text, str) else None
+    return (int(match[1]), int(match[2])) if match else None
+
+
+def game_profile(target_version):
+    """How the project's target version is read: which documentation applies and the custom terrain numbers used.
+    Unset or unrecognized targets keep the manual's 500-999 range rather than being assumed to be 5.41."""
+    parsed = parse_version(target_version)
+    if not target_version:
+        status = "unset"
+    elif parsed is None:
+        status = "unrecognized"
+    else:
+        status = "5.41_or_later" if parsed >= (5, 41) else "before_5.41"
+    later = status == "5.41_or_later"
+    terrain = {"first": 500, "last": 1999 if later else 999,
+               "basis": "Inferred from the 5.41 release notes (2000 total terrain slots, 0-499 reserved); unverified in the engine."
+               if later else f"Manual {MANUAL['version']} custom terrain numbers."}
+    notes = {"unset": "No target version: 5.41 release-note changes are not applied; announced commands stay unverified.",
+             "unrecognized": "Target version is not in the form 5.41: 5.41 release-note changes are not applied.",
+             "before_5.41": "Target predates 5.41: release-note additions do not apply.",
+             "5.41_or_later": "Manual 5.36 is the documentation baseline; 5.41 additions are known only from release notes."}
+    return {"target_version": target_version, "status": status, "manual": MANUAL,
+            "release_notes": [RELEASE_541] if later else [], "custom_terrain": terrain,
+            "announced_limits": LIMITS_541 if later else [], "note": notes[status]}
+
+
+def is_custom_terrain(number, target_version):
+    """Whether a selectterr number opens a new custom terrain for this target (see game_profile)."""
+    terrain = game_profile(target_version)["custom_terrain"]
+    return isinstance(number, str) and number.isdigit() and terrain["first"] <= int(number) <= terrain["last"]
+
+
+def announced_entry(context, command):
+    """A command named only in the 5.41 release notes, when its announced context (if any) matches."""
+    if command not in ANNOUNCED_COMMANDS or ANNOUNCED_COMMANDS[command] not in (None, context):
+        return None
+    return {"command": command, "context": ANNOUNCED_COMMANDS[command], "status": "announced", "validated": False,
+            "minimum_version": RELEASE_541["version"], "release": RELEASE_541, "signature": None, "arguments": None,
+            "manual_page": None, "page": None, "repeat": None, "summary": "",
+            "note": "Announced in the CoE5 5.41 release notes. Its arguments" + ("" if ANNOUNCED_COMMANDS[command] else ", context")
+                    + " and effects are not documented in the pinned manual; KENOGENESIS preserves it without checks.",
+            "source": "Release-note overlay (" + RELEASE_541["source"] + ")"}

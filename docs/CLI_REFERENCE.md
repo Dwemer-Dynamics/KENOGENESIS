@@ -31,7 +31,7 @@ quoting. For example, a field preview request:
 | `build_example` | optional fresh `slug`, `target_version` |
 | `import_project` | `slug`, `source`, optional `declared_assets`, `target_version` |
 | `project_view` | `project` |
-| `lookup_command` | optional `command`, `context`, `query` (name or summary text), `status` (`curated` or `documented`), `limit` (default 200, at most 1000) |
+| `lookup_command` | optional `command`, `context`, `query` (name or summary text), `status` (`curated`, `documented` or `announced`), `limit` (default 200, at most 1000) |
 | `search_game_data` | `project`, optional `query`, `kind`, `limit` |
 | `preview_patch`, `apply_patch` | `project`, `expected_revision`, exact unique `old`, `new` |
 | `preview_fields`, `apply_fields` | `project`, `expected_revision`, `object_index`, `command`, `arguments` |
@@ -86,7 +86,11 @@ only: KENOGENESIS preserves them and does not check their arguments. With `conte
 named command that the manual documents as global (block openers, mod-wide commands)
 also matches and says `matched_via: "global"`. An unknown name returns no entries and
 `status: "unknown"`; an unknown context returns `status: "unknown_context"` and the list
-of `contexts`. Results report `total`, `counts` and `truncated`. The `commands` shortcut
+of `contexts`. `announced` entries (`validated: false`, `minimum_version: "5.41"`) are
+names from the CoE5 5.41 release notes (`release` gives the source). They have no
+`signature`, `arguments` or `manual_page`; `context` is `null` unless the notes state it.
+With `context`, such a name matches only when named and says
+`matched_via: "context_not_announced"`. Results report `release_notes`, `total`, `counts` and `truncated`. The `commands` shortcut
 takes the same filters: `commands [NAME] [--context C] [--query TEXT] [--status S] [--limit N]`.
 
 `catalog_page` and `catalog_entry` read the project's configured local catalog (or its
@@ -94,6 +98,9 @@ private snapshot) exactly as the browser catalog does; they extract and write no
 
 `project_view` keeps its original shape. `project_model` returns the same resolved model as
 the browser's project page (`GET /api/projects/<slug>`, also `GET /api/project_model`).
+Both include `game_profile`: how the target version is read (`unset`, `unrecognized`,
+`before_5.41` or `5.41_or_later`), the pinned `manual`, applicable `release_notes`, the
+`custom_terrain` range with its basis, and `announced_limits` (reference only; not enforced).
 
 `preview_block_edit` with `mode: "new"` accepts `insert_before` (a block index) and one
 `linked` edit `{object_index, changes}` of an existing block. Both are reviewed and saved as

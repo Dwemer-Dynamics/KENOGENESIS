@@ -8,6 +8,11 @@
    `lookup_command`, which covers the whole pinned manual index: `curated` entries have
    argument checks; `documented` entries (`validated: false`) are preserved but not checked.
    Inspect the official manual for an `unknown` name or when coverage is absent.
+   `announced` entries are names from release notes only (minimum version, no
+   signature): never invent their arguments, and report them as unverified.
+   Keep four things apart: manual/schema support, release-note announcements,
+   engine limits (`game_profile.announced_limits`, not enforced) and KENOGENESIS
+   tool safety caps (upload, import and listing sizes), which are not game limits.
 3. Use `search_game_data` only with provenance/version disclosures. A missing
    catalog leaves vanilla references unverified. Never invent a catalog entry.
 4. Use `preview_fields` for explicit singleton commands. For repeatable commands,

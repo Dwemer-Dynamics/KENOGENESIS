@@ -707,8 +707,8 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual((curated["args"], curated["page"], curated["validated"], curated["manual_page"]), (["i"], 14, True, 14))
         self.assertEqual(self.core.lookup_command("newmonster", "monster")["entries"][0]["matched_via"], "global")
         everything = self.core.lookup_command(limit=1000)
-        self.assertEqual((everything["total"], everything["truncated"]), (891, False))
-        self.assertEqual(len({e["command"] for e in everything["entries"]}), 845)
+        self.assertEqual((everything["total"], everything["truncated"], everything["counts"]["announced"]), (897, False, 6))
+        self.assertEqual(len({e["command"] for e in everything["entries"] if e["status"] != "announced"}), 845)
         self.assertEqual(self.core.lookup_command("futurecommand")["status"], "unknown")
         self.assertEqual(self.core.lookup_command(context="map")["status"], "unknown_context")
         self.assertTrue(all(e["status"] == "curated" for e in self.core.lookup_command(context="class", status="curated")["entries"]))
@@ -718,6 +718,67 @@ class SafetyTests(unittest.TestCase):
         page = subprocess.run([sys.executable, "-m", "kenogenesis", "--workspace", str(self.workspace), "run", "catalog_page",
                                "--args", json.dumps({"project": "sample"})], capture_output=True, text=True, check=True)
         self.assertEqual(json.loads(page.stdout)["result"]["rows"], [])
+
+    def test_coe5_541_overlay_versions_announced_commands_and_custom_terrain(self):
+        from kenogenesis.commands import game_profile
+        statuses = {v: game_profile(v)["status"] for v in (None, "", "5.4", "v5.41", "5.36", "5.40", "5.41", " 5.41 ", "5.50", "6.00")}
+        self.assertEqual(statuses, {None: "unset", "": "unset", "5.4": "unrecognized", "v5.41": "unrecognized", "5.36": "before_5.41",
+                                    "5.40": "before_5.41", "5.41": "5.41_or_later", " 5.41 ": "5.41_or_later", "5.50": "5.41_or_later",
+                                    "6.00": "5.41_or_later"})
+        self.assertEqual({v: game_profile(v)["custom_terrain"]["last"] for v in (None, "5.4", "5.40", "5.41")},
+                         {None: 999, "5.4": 999, "5.40": 999, "5.41": 1999})
+        brigand = self.core.lookup_command("brigand")
+        self.assertEqual([(e["status"], e["context"], e["validated"], e["signature"], e["minimum_version"]) for e in brigand["entries"]],
+                         [("announced", None, False, None, "5.41")])
+        self.assertEqual(self.core.lookup_command("brigand", "monster")["entries"][0]["matched_via"], "context_not_announced")
+        self.assertEqual(self.core.lookup_command("+minunitshere", "event")["entries"][0]["context"], "event")
+        self.assertEqual(self.core.lookup_command("+minunitshere", "monster")["status"], "unknown")
+        self.assertNotIn("brigand", [e["command"] for e in self.core.lookup_command(context="monster", limit=1000)["entries"]])
+        self.assertEqual(self.core.lookup_command(status="announced")["total"], 6)
+        recs = "".join('addunitrec "Test Unit" 10 1 0 0 0\n' for _ in range(129))
+        source = ('icon "banner.tga"\ndescription "Overlay"\nnewmonster "Test Unit"\nhp 6\nbrigand 3\nselectterr 1200\nname "High Keep"\n'
+                  'citadel\nspr "keep.png"\nnewclass\nsetclassname "Test Class"\nhometerr 1200\nsetmaincom "Test Unit"\n' + recs +
+                  'playerevent\n+minunitshere 2\nendevent\n').encode()
+        self.path.write_bytes(source)
+
+        def state(version):
+            self.core.configure_project("sample", self.view()["revision"], target_version=version, preview=False)
+            report = self.core.validate_mod("sample")
+            model = self.core.project_model("sample")
+            terrain = next(o for o in model["objects"] if o["kind"] == "terrain")
+            home = next(o for o in model["objects"] if o["kind"] == "class")["view"]["hometerr"]["target"]
+            return {d["code"]: d for d in report["diagnostics"]}, report, terrain, home, model
+        for version in (None, "5.36"):
+            codes, _, terrain, home, model = state(version)
+            self.assertEqual((terrain["new"], home["new"], codes["recruitment_limit"]["severity"]), (False, False, "error"))
+            self.assertIn("Needs CoE5 5.41", codes["announced_command"]["message"])
+            self.assertIn("existing terrain", codes["terrain_range"]["message"])
+            self.assertEqual(model["game_profile"]["custom_terrain"]["last"], 999)
+        codes, report, terrain, home, model = state("5.41")
+        self.assertEqual((terrain["new"], home["status"], home["new"], codes["recruitment_limit"]["severity"]), (True, "local", True, "unverified"))
+        self.assertEqual({d["message"].split(":")[0] for d in report["diagnostics"] if d["code"] == "announced_command"}, {"brigand", "+minunitshere"})
+        self.assertNotIn("Needs CoE5", codes["announced_command"]["message"])
+        self.assertIn("inferred", codes["terrain_range"]["message"])
+        self.assertNotIn("reference", codes)
+        self.assertEqual((model["game_profile"]["release_notes"][0]["version"], len(model["game_profile"]["announced_limits"])), ("5.41", 8))
+        self.assertEqual(self.path.read_bytes(), source)
+        result = subprocess.run([sys.executable, "-m", "kenogenesis", "--workspace", str(self.workspace), "commands", "--status", "announced"],
+                                capture_output=True, text=True, check=True)
+        self.assertEqual(json.loads(result.stdout)["result"], self.core.lookup_command(status="announced"))
+        server = make_server(self.core, 0)
+        thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+        try:
+            connection = http.client.HTTPConnection("127.0.0.1", server.server_port)
+            connection.request("GET", "/api/meta")
+            meta = json.loads(connection.getresponse().read())["result"]
+            self.assertEqual(meta["release_notes"][0]["version"], "5.41")
+            self.assertEqual({e["command"] for e in meta["registry"] if e["status"] == "announced"},
+                             {"brigand", "pickupbrigands", "adventurer", "pickupadvent", "partyleader", "+minunitshere"})
+            connection.request("GET", f"/api/lookup_command?args={urllib.parse.quote(json.dumps({'command': 'partyleader'}))}")
+            self.assertEqual(json.loads(connection.getresponse().read())["result"], self.core.lookup_command("partyleader"))
+            connection.close()
+        finally:
+            server.shutdown(); server.server_close(); thread.join()
 
     def test_typed_evidence_references_are_bounded_and_legacy_compatible(self):
         revision = self.view()["revision"]

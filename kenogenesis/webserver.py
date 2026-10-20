@@ -16,7 +16,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from . import __version__
-from .commands import MANUAL, TABLES
+from .commands import MANUAL, RELEASE_541, TABLES
 from .core import envelope
 from .errors import KenoError
 from .images import preview_png
@@ -65,7 +65,7 @@ def make_server(core, port=8766):
         if not meta_cache:
             from .view import form_specs, opener_specs, registry
             # runtime names the interpreter serving this page so generated CLI instructions use the same Python.
-            meta_cache.update(tool="KENOGENESIS", version=__version__, manual=MANUAL, registry=registry(),
+            meta_cache.update(tool="KENOGENESIS", version=__version__, manual=MANUAL, release_notes=[RELEASE_541], registry=registry(),
                               forms=form_specs(), openers=opener_specs(), tables=TABLES,
                               runtime={"python_executable": sys.executable, "python_version": platform.python_version(),
                                        "platform": sys.platform})

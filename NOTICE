@@ -30,3 +30,11 @@ CoE5 command signatures and documented limits were researched against:
 The manual is not bundled. The command reference index includes documented
 names, signatures, page locations and short manual descriptions; UI labels and
 curated validation are maintained separately. No engine simulation is implied.
+
+CoE5 5.41 additions are recorded from release notes, not from the manual:
+  Illwinter Game Design (johan), "Conquest of Elysium 5.41", Steam news, 19 Oct 2026
+  Steam ISteamNews/GetNewsForApp, appid 1606340, gid 1846651706689977
+  https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706689977
+The official manual available on that date was still version 5.36. The announced
+command names carry no documented signature; the custom terrain range 500-1999 is
+inferred from the announced terrain slot total.
