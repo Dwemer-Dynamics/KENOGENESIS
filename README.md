@@ -1,11 +1,37 @@
-# KENOGENESIS
+# Kenogenesis
 
 Local, agent-assisted mod authoring for **Conquest of Elysium 5**.
 
 Inspect `.c5m` source, make reviewed changes, check supported commands and assets,
 and export a fresh mod package. A command line, local browser and optional MCP
-server share the same core. Codex or Claude supplies the AI; KENOGENESIS does not
+server share the same core. Codex or Claude supplies the AI; Kenogenesis does not
 require an AI account to browse, edit, validate or export.
+
+## Download and setup
+
+Download from the [latest release](https://github.com/Dwemer-Dynamics/KENOGENESIS/releases/latest);
+the [project page](https://dwemerdynamics.com/other-projects/kenogenesis.html) has an overview.
+The recommended download is `Kenogenesis-0.1.0-source.zip`. Check it against
+`SHA256SUMS.txt` from the same release:
+
+```powershell
+Get-FileHash .\Kenogenesis-0.1.0-source.zip -Algorithm SHA256
+```
+
+Extract the ZIP, install Python 3.11 or later if needed, and run the launcher
+from the extracted folder with a private workspace of your choice:
+
+```powershell
+.\start.ps1 -Workspace .\work -OpenBrowser
+```
+
+The ZIP contains the source, `start.ps1`, documentation and agent instructions
+(`AGENTS.md`, `docs/`). It contains no user projects, game catalogs or artwork,
+and there is no installer or bundled Python. The release wheel is optional, for
+installing into an existing Python 3.11+ environment
+(`python -m pip install .\kenogenesis-0.1.0-py3-none-any.whl`, then
+`kenogenesis --workspace <folder> serve`). Add `[mcp]` only for MCP clients and
+`[art]` (Pillow) only for `scripts/prepare-assets.py`, which ships in the source ZIP.
 
 ## Start locally
 

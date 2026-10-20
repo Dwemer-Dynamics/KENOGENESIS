@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kenogenesis"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "KENOGENESIS: local Conquest of Elysium 5 authoring, review and export"
 readme = "README.md"
 requires-python = ">=3.11"
